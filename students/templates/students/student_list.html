@@ -1,42 +1,577 @@
 <!-- students/templates/students/student_list.html -->
-{% extends 'students/base.html' %} {% block content %}
-<h2>All Students</h2>
-<table>
-  <thead>
-    <tr>
-      <th>First Name</th>
-      <th>Last Name</th>
-      <th>Student ID</th>
-      <th>Email</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for student in students %}
-    <tr>
-      <td>{{ student.first_name }}</td>
-      <td>{{ student.last_name }}</td>
-      <td>{{ student.student_id }}</td>
-      <td>{{ student.email }}</td>
-      <td class="actions">
-        <a href="{% url 'delete_student' student.id %}">Delete</a>
-      </td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="5">No students found.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends 'students/base.html' %} {% block title %}Student List - Student
+Portal{% endblock %} {% block content %}
+<style>
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
 
-<form action="{% url 'add_student' %}" method="post">
+  .page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .page-title i {
+    background: var(--primary-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary-gradient);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  .stat-number {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-label {
+    color: var(--text-light);
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+
+  .table-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  .modern-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: transparent;
+  }
+
+  .modern-table th {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    color: var(--text-light);
+    font-weight: 600;
+    padding: 1.5rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .modern-table td {
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-light);
+    transition: var(--transition);
+  }
+
+  .modern-table tbody tr {
+    transition: var(--transition);
+  }
+
+  .modern-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: scale(1.01);
+  }
+
+  .student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+  }
+
+  .student-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .student-details {
+    flex: 1;
+  }
+
+  .student-name {
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+  }
+
+  .student-id {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+
+  .action-btn {
+    background: var(--secondary-gradient);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .action-btn.delete {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  }
+
+  .action-btn.delete:hover {
+    box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+  }
+
+  .add-student-form {
+    background: var(--glass-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .form-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .form-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .form-subtitle {
+    color: var(--text-light);
+    opacity: 0.8;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-group {
+    position: relative;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    color: var(--text-light);
+    font-size: 1rem;
+    transition: var(--transition);
+    backdrop-filter: blur(10px);
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: rgba(102, 126, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+  }
+
+  .form-input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .form-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+
+  .submit-btn {
+    background: var(--primary-gradient);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    filter: brightness(1.1);
+  }
+
+  .submit-btn:active {
+    transform: translateY(-1px);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-light);
+    opacity: 0.8;
+  }
+
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    background: var(--primary-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-light);
+  }
+
+  .empty-state p {
+    color: var(--text-light);
+    opacity: 0.7;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .page-header {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .modern-table th,
+    .modern-table td {
+      padding: 1rem 0.5rem;
+    }
+
+    .student-info {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .student-avatar {
+      margin-right: 0;
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  /* Animation classes */
+  .animate-in {
+    animation: slideInUp 0.6s ease-out;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+
+<div class="page-header animate-in">
+  <h2 class="page-title">
+    <i class="fas fa-users"></i>
+    Student Directory
+  </h2>
+</div>
+
+<div class="stats-cards animate-in">
+  <div class="stat-card">
+    <div class="stat-number">{{ students|length }}</div>
+    <div class="stat-label">Total Students</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">{{ students|length }}</div>
+    <div class="stat-label">Active Profiles</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">100%</div>
+    <div class="stat-label">System Health</div>
+  </div>
+</div>
+
+<div class="table-container animate-in">
+  <div class="table-wrapper">
+    <table class="modern-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Email</th>
+          <th>Student ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td>
+            <div class="student-info">
+              <div class="student-avatar">
+                {{ student.first_name.0 }}{{ student.last_name.0 }}
+              </div>
+              <div class="student-details">
+                <div class="student-name">
+                  {{ student.first_name }} {{ student.last_name }}
+                </div>
+                <div class="student-id">ID: {{ student.student_id }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <i
+              class="fas fa-envelope"
+              style="margin-right: 0.5rem; opacity: 0.7"
+            ></i>
+            {{ student.email }}
+          </td>
+          <td>
+            <span
+              style="
+                background: var(--accent-gradient);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                font-weight: 600;
+              "
+            >
+              {{ student.student_id }}
+            </span>
+          </td>
+          <td>
+            <a
+              href="{% url 'delete_student' student.id %}"
+              class="action-btn delete"
+            >
+              <i class="fas fa-trash"></i>
+              Delete
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">
+              <i class="fas fa-users-slash"></i>
+              <h3>No Students Found</h3>
+              <p>Start by adding your first student below</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<form
+  class="add-student-form animate-in"
+  action="{% url 'add_student' %}"
+  method="post"
+>
   {% csrf_token %}
-  <h3>Add a New Student</h3>
-  <input type="text" name="first_name" placeholder="First Name" required />
-  <input type="text" name="last_name" placeholder="Last Name" required />
-  <input type="text" name="student_id" placeholder="Student ID" required />
-  <input type="email" name="email" placeholder="Email" required />
-  <button type="submit">Add Student</button>
+  <div class="form-header">
+    <h3 class="form-title">
+      <i class="fas fa-user-plus"></i>
+      Add New Student
+    </h3>
+    <p class="form-subtitle">
+      Fill in the details to add a new student to the system
+    </p>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group">
+      <i class="fas fa-user form-icon"></i>
+      <input
+        type="text"
+        name="first_name"
+        placeholder="First Name"
+        required
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
+      <i class="fas fa-user form-icon"></i>
+      <input
+        type="text"
+        name="last_name"
+        placeholder="Last Name"
+        required
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
+      <i class="fas fa-id-card form-icon"></i>
+      <input
+        type="text"
+        name="student_id"
+        placeholder="Student ID"
+        required
+        class="form-input"
+      />
+    </div>
+
+    <div class="form-group">
+      <i class="fas fa-envelope form-icon"></i>
+      <input
+        type="email"
+        name="email"
+        placeholder="Email Address"
+        required
+        class="form-input"
+      />
+    </div>
+  </div>
+
+  <button type="submit" class="submit-btn">
+    <i class="fas fa-plus"></i>
+    Add Student
+  </button>
 </form>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Add stagger animation to table rows
+    const rows = document.querySelectorAll(".modern-table tbody tr");
+    rows.forEach((row, index) => {
+      row.style.animationDelay = `${index * 0.1}s`;
+      row.classList.add("animate-in");
+    });
+
+    // Add hover effects to form inputs
+    const inputs = document.querySelectorAll(".form-input");
+    inputs.forEach((input) => {
+      input.addEventListener("focus", function () {
+        this.parentElement.style.transform = "translateY(-2px)";
+      });
+
+      input.addEventListener("blur", function () {
+        this.parentElement.style.transform = "translateY(0)";
+      });
+    });
+
+    // Add confirmation for delete actions
+    const deleteButtons = document.querySelectorAll(".action-btn.delete");
+    deleteButtons.forEach((button) => {
+      button.addEventListener("click", function (e) {
+        e.preventDefault();
+        const studentName =
+          this.closest("tr").querySelector(".student-name").textContent;
+
+        if (
+          confirm(
+            `Are you sure you want to delete ${studentName}? This action cannot be undone.`
+          )
+        ) {
+          window.location.href = this.href;
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}
