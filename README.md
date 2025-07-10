@@ -69,3 +69,12 @@ With Docker running and the `.env` file created, you can build and start the app
 ```bash
 docker-compose up --build -d
 ```
+
+## Screenshots
+
+|                                ![alt text](./images/homepage.png)                                 |
+| :-----------------------------------------------------------------------------------------------: |
+|            _The main dashboard showing the list of students in a modern table layout_             |
+|                           ![alt text](./images/add_student_section.png)                           |
+|                                               :--:                                                |
+| _The form for adding a new student, with fields for first name, last name, student ID, and email_ |
